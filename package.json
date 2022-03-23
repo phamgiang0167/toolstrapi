@@ -1,0 +1,75 @@
+{
+  "name": "igap-strapi-electron",
+  "version": "0.1.0",
+  "author": "Vien Tran",
+  "private": true,
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.2",
+    "@testing-library/react": "^12.1.3",
+    "@testing-library/user-event": "^13.5.0",
+    "antd": "^4.18.8",
+    "axios": "^0.26.1",
+    "concurrently": "^7.0.0",
+    "convert-csv-to-json": "^1.3.3",
+    "cross-env": "^7.0.3",
+    "csv": "^6.0.5",
+    "electron": "^17.1.0",
+    "electron-builder": "^22.14.13",
+    "json2csv": "^5.0.7",
+    "papaparse": "^5.3.1",
+    "react": "^17.0.2",
+    "react-csv": "^2.2.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "5.0.0",
+    "wait-on": "^6.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "main": "public/main.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron-dev": "concurrently \"SET BROWSER=none&&npm run start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron:build": "yarn build && electron-builder -c.extraMetadata.main=build/main.js",
+    "dev": "cross-env BROWSER=none yarn clean:lib && webpack --progress --colors --watch --env dev",
+    "electron-react": "concurrently \"BROWSER=none npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-build": "electron-builder"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.example.electron-cra",
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    }
+  },
+  "devDependencies": {
+    "electron-builder": "^22.14.13",
+    "file-saver": "^2.0.5",
+    "xlsx": "^0.18.4"
+  }
+}
