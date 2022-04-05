@@ -62,7 +62,7 @@ const data = {
         },
         {
             name: "Vendors",
-            val: "Vendor"
+            val: "vendor"
         },
         {
             name: "Wards",

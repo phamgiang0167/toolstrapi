@@ -12,7 +12,18 @@ const fileType =
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8";
 const fileExtension = ".xlsx";
 const exportToCSV = (apiData, fileName) => {
-
+    for(let i = 0; i < apiData.length; i++){
+        for(let key in apiData[i]){
+            if(Array.isArray(apiData[i][key])){
+                apiData[i][key] = [apiData[i][key].map(item => {
+                    if(typeof item == "object"){
+                        return JSON.stringify(item)
+                    }
+                    return item
+                })].toString()
+            }
+        }
+    }
     const ws = XLSX.utils.json_to_sheet(apiData);
     const wb = { Sheets: { data: ws }, SheetNames: ["data"] };
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -25,7 +36,7 @@ class Export extends Component {
         super(props);
         this.state = {
             bearToken: localStorage.getItem("bearToken") ? localStorage.getItem("bearToken") : null,
-            sellerCode: null,
+            search: null,
             type: data.type[0].val,
             envi: 'URLDEV',
             data: null,
@@ -34,7 +45,7 @@ class Export extends Component {
         }
         this.handChangeEnvi = this.handChangeEnvi.bind(this);
         this.handChangeFileName = this.handChangeFileName.bind(this);
-        this.handChangeSellerCode = this.handChangeSellerCode.bind(this);
+        this.handChangeSearch = this.handChangeSearch.bind(this);
         this.handChangeToken = this.handChangeToken.bind(this);
         this.handChangeType = this.handChangeType.bind(this);
         this.handleExport = this.handleExport.bind(this)
@@ -46,9 +57,9 @@ class Export extends Component {
             envi: value
         })
     }
-    handChangeSellerCode(value) {
+    handChangeSearch(value) {
         this.setState({
-            sellerCode: value.target.value
+            search: value.target.value
         })
     }
     handChangeType(value) {
@@ -68,11 +79,12 @@ class Export extends Component {
         })
     }
     handleExport() {
-        const { bearToken, sellerCode, type, envi, data, fileName } = this.state;
+        const { bearToken, search, type, envi, data, fileName } = this.state;
         this.setState({
             loading: true
         })
-        apis.exportData(envi, { sellerCode }, type)
+        const params = ["driver", "vehicle", "vendor"].includes(type) ? {vendorCode : search} : {sellerCode: search}
+        apis.exportData(envi, params, type)
             .then((data) => {
                 
                 message.success("Lấy dữ liệu thành công, click Download để tải file")
@@ -83,6 +95,9 @@ class Export extends Component {
             })
             .catch(err => {
                 message.error("Lấy dữ liệu thất bại")
+                this.setState({
+                    loading: false
+                })
                 if (err.response.status == "401") {
                     message.error("Token không hợp lệ !")
                 }
@@ -94,7 +109,7 @@ class Export extends Component {
         return data[type]?.map((item, index) => <Option key={index} value={item.val}>{item.name}</Option>)
     }
     render() {
-        const { bearToken, sellerCode, type, envi, fileName, data, loading } = this.state;
+        const { bearToken, search, type, envi, fileName, data, loading } = this.state;
         return (
             <div className='container'>
                 <Input.Group compact >
@@ -114,9 +129,9 @@ class Export extends Component {
                         <Input
                             className='export-item'
                             style={{ width: 400 }}
-                            onChange={this.handChangeSellerCode}
-                            value={sellerCode}
-                            placeholder="Seller Code"
+                            onChange={this.handChangeSearch}
+                            value={search}
+                            placeholder="Search"
                         />
 
                         <Select
@@ -133,7 +148,7 @@ class Export extends Component {
                         <Button
                             className="btn-export export-item"
                             onClick={this.handleExport}
-                            disabled={!fileName || !sellerCode  ? true : false}
+                            disabled={!fileName || !search  ? true : false}
                         >
                             Export File CSV
                             {loading  && <Spin indicator={antIcon} style={{float: "right"}}/>}
