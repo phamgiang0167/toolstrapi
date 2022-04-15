@@ -1,13 +1,13 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { Input, Select, Button, message, Spin } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
 import TextArea from 'antd/lib/input/TextArea';
+import 'antd/dist/antd.css';
 import * as XLSX from "xlsx";
 import apis from '../apis';
-import { callApi } from '../utils/callApi';
-import { LoadingOutlined } from '@ant-design/icons';
 const { Option } = Select;
 
-
+const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 class Import extends Component {
     constructor(props) {
         super(props);
@@ -16,7 +16,10 @@ class Import extends Component {
             envi: 'URLDEV',
             fileCSV: null,
             data: null,
-            dataDiff: null
+            dataDiff: null,
+            loading: false,
+            disable: false,
+            disableAll: false
         }
         this.handChangeEnvi = this.handChangeEnvi.bind(this);
         this.handChangeFile = this.handChangeFile.bind(this);
@@ -26,7 +29,10 @@ class Import extends Component {
         this.compare2Data = this.compare2Data.bind(this)
         this.compare2Array = this.compare2Array.bind(this)
         this.convertBool = this.convertBool.bind(this)
+        this.convertNoneData = this.convertNoneData.bind(this)
     }
+
+
     handChangeEnvi(value) {
         this.setState({
             envi: value
@@ -45,7 +51,22 @@ class Import extends Component {
         localStorage.setItem("bearToken", value.target.value)
     }
 
-    handleImport() {
+    convertNoneData(data){
+        if(
+            data === undefined ||
+            data === null ||
+            data === ""
+        ){
+            return null
+        }else{
+            return data
+        }
+    }
+
+    handleImport(option) {
+        this.setState({
+            loading: true
+        })
         const { bearToken, fileCSV } = this.state;
 
         if (fileCSV && bearToken) {
@@ -58,7 +79,7 @@ class Import extends Component {
                 const ws = wb.Sheets[wsname];
                 const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
                 this.setState({ data: this.convertToJson(data) });
-                this.compare2Data()
+                this.compare2Data(option)
             }
             reader.readAsBinaryString(fileCSV[0])
         }
@@ -69,80 +90,95 @@ class Import extends Component {
         for (let i = 1; i < data.length; i++) {
             let obj = {}
             for (let j = 0; j < data[0].length; j++) {
-                if (data[i][j] !== "") {
-                    obj = { ...obj, [data[0][j]]: data[i][j] }
-                }
+                obj = { ...obj, [data[0][j]]: this.convertNoneData(data[i][j]) }
             }
             finalArr = [...finalArr, obj]
         }
         return finalArr; //JSON
     }
 
-    compare2Data() {
+    compare2Data(option) {
         const { data, envi } = this.state
         if (data == null) return
         const params = ["driver", "vehicle", "vendor"].includes(data[0].contentType) ? { vendorCode: data[0].vendorCode } : { sellerCode: data[0].sellerCode }
-
+        
+        // lấy dữ liệu để so sánh với dữ liệu excel
         apis.exportData(envi, params, data[0].contentType)
             .then(data => {
-                this.compare2Array(data.data, this.state.data)
-
+                this.compare2Array(data.data, this.state.data, option)
             })
 
     }
-    compare2Array(arr1, arr2) {
+    compare2Array(arr1, arr2, option) {
         const { data, envi } = this.state
-
         let diff = []
-        for (let i = 0; i < arr1.length && i < arr2.length; i++) {
-            delete arr2[i]["vehicleAbcGroup"] 
-            for (let key in arr1[i]) {
-                if (!["createdAt", "updatedAt", "vehicleAbcGroup"].includes(key)) {
-                    if (["vehicleMapping"].includes(key)) {
-                        if (arr2[i][key]) {
-                            const arr2Array = arr2[i][key].split(',')
-                            if (JSON.stringify(arr1[i][key]) != JSON.stringify(arr2Array)) {
-                                diff = [...diff, { ...arr2[i], [key]: arr2Array }]
+        if(option == 'all'){
+            diff = [...diff, ...arr2]
+        }else{
+            for (let i = 0; i < arr1.length && i < arr2.length; i++) {
+                for (let key in arr2[i]) {
+
+                    // các field ko nên so sánh
+                    if (!["createdAt", "updatedAt", "vehicleAbcGroup"].includes(key)) {
+
+                        // xử lí các case dạng array
+                        if (["vehicleMapping"].includes(key)) {
+                            if (arr2[i][key]) {
+                                const arr2Array = arr2[i][key].split(',')
+                                if (JSON.stringify(arr1[i][key]) !== JSON.stringify(arr2Array)) {
+                                    diff = [...diff, { ...arr2[i], [key]: arr2Array }]
+                                }
+                            }
+                        
+                        } else {
+                            if (this.convertNoneData(arr1[i][key]) !== this.convertNoneData(arr2[i][key])) {
+                                diff = [...diff, arr2[i]]
+                                break
+    
                             }
                         }
-
-                    } else {
-                        if (arr1[i][key] != arr2[i][key]) {
-                            diff = [...diff, arr2[i]]
-                            break
-
-                        }
                     }
-
-
-
-
                 }
             }
         }
-        console.log(diff)
+        
+        // update 
         try {
             if (diff.length == 0) {
                 message.warning("Nothing to update")
+                this.setState({
+                    loading: false
+                })
             } else {
                 diff.forEach(ele => {
                     apis.updateData(envi, null, data[0].contentType + `/${ele._id}`, ele)
                 })
                 message.success("Update success")
+                this.setState({
+                    loading: false
+                })
             }
         } catch (err) {
             message.error("Update fail")
+            this.setState({
+                loading: false
+            })
         }
+        const timeId = setTimeout(() => {
+            window.location.reload()
+            clearTimeout(timeId)
+        }, 3000)
     }
 
     convertBool(val) {
         return val == "TRUE" ? true : false
     }
     render() {
-        const { bearToken, envi } = this.state;
+        const { bearToken, envi, loading,disable, disableAll } = this.state;
 
         return (
-            <div className='container'>
+            <Fragment>
+                
                 <Input.Group compact >
                     <div className="form-export" style={{ display: 'flex' }}>
 
@@ -153,13 +189,29 @@ class Import extends Component {
 
                         <Input multiple={false} type={'file'} accept=".csv,.xlsx,.xls" className='export-item' style={{ width: 400 }} onChange={this.handChangeFile} />
                         <TextArea className='export-item' style={{ width: 400, height: 100 }} onChange={this.handChangeToken} value={bearToken} placeholder="Token Bear" />
-                        <Button className="btn-export export-item" onClick={this.handleImport}>
-                            Import File CSV
+                        <Button className="btn-export export-item" 
+                            onClick={() => {
+                                this.setState({disableAll: true})
+                                this.handleImport()
+                            }
+                        }>
+                            <span>Cập nhật phần chỉnh sửa</span>
+                            {loading  && !disable && <Spin indicator={antIcon} style={{float: "right"}}/>}
+                        </Button>
+                        <Button className="btn-export export-item" 
+                            onClick={() => {
+                                this.setState({disable: true})
+                                this.handleImport('all')
+                            }}
+                        >
+                            <span>Cập nhật tất cả</span>
+                            {loading  && !disableAll && <Spin indicator={antIcon} style={{float: "right"}}/>}
                         </Button>
                     </div>
                 </Input.Group>
 
-            </div>
+                
+            </Fragment>
         );
     }
 }
