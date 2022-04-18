@@ -13,7 +13,7 @@ class Import extends Component {
         super(props);
         this.state = {
             bearToken: localStorage.getItem("bearToken") ? localStorage.getItem("bearToken") : null,
-            envi: 'URLDEV',
+            envi: localStorage.getItem("ENVI") ? localStorage.getItem("ENVI") : 'URLDEV',
             fileCSV: null,
             data: null,
             dataDiff: null,
@@ -30,10 +30,11 @@ class Import extends Component {
         this.compare2Array = this.compare2Array.bind(this)
         this.convertBool = this.convertBool.bind(this)
         this.convertNoneData = this.convertNoneData.bind(this)
+        this.update = this.update.bind(this)
     }
 
-
     handChangeEnvi(value) {
+        localStorage.setItem("ENVI", value)
         this.setState({
             envi: value
         })
@@ -131,7 +132,7 @@ class Import extends Component {
                             }
                         
                         } else {
-                            if (this.convertNoneData(arr1[i][key]) !== this.convertNoneData(arr2[i][key])) {
+                            if (this.convertNoneData(arr1[i][key]) != this.convertNoneData(arr2[i][key])) {
                                 diff = [...diff, arr2[i]]
                                 break
     
@@ -150,13 +151,8 @@ class Import extends Component {
                     loading: false
                 })
             } else {
-                diff.forEach(ele => {
-                    apis.updateData(envi, null, data[0].contentType + `/${ele._id}`, ele)
-                })
-                message.success("Update success")
-                this.setState({
-                    loading: false
-                })
+                this.update(diff, 0)
+                
             }
         } catch (err) {
             message.error("Update fail")
@@ -164,10 +160,27 @@ class Import extends Component {
                 loading: false
             })
         }
-        const timeId = setTimeout(() => {
-            window.location.reload()
-            clearTimeout(timeId)
-        }, 3000)
+        // const timeId = setTimeout(() => {
+        //     window.location.reload()
+        //     clearTimeout(timeId)
+        // }, 3000)
+    }
+
+    async update(diff, index){
+        const {data, envi} = this.state
+        if(index == diff.length){
+            message.success("Update success")
+            this.setState({
+                loading: false,
+                disable: false,
+                disableAll: false
+            })
+            return
+        }else{
+            await apis.updateData(envi, null, data[0].contentType + `/${diff[index]._id}`, diff[index])
+            this.update(diff, index + 1)
+        }
+        
     }
 
     convertBool(val) {
@@ -182,7 +195,7 @@ class Import extends Component {
                 <Input.Group compact >
                     <div className="form-export" style={{ display: 'flex' }}>
 
-                        <Select className='export-item' style={{ width: 400 }} defaultValue="dev" value={envi} onChange={this.handChangeEnvi}>
+                        <Select className='export-item' style={{ width: 400 }} value={envi} onChange={this.handChangeEnvi}>
                             <Option value='URLDEV'>DEVELOP</Option>
                             <Option value="URLPROD">PRODUCTION</Option>
                         </Select>

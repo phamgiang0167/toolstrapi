@@ -16,6 +16,11 @@ class Home extends Component {
         })
     }
 
+    componentDidMount(){
+        const envi = localStorage.getItem("ENVI") ? localStorage.getItem("ENVI") : "URLDEV"
+        localStorage.setItem("ENVI", envi)
+    }
+
     render() {
         const { isImport } = this.state
         return (

@@ -10,8 +10,8 @@ const apis = {
         }
         return callApi(envi, param, END_POINT + `/${endpoint}`)
     },
-    updateData(envi, params, endpoint, data){
-        callApi(envi, null, END_POINT + `/${endpoint}`, "PUT", data)
+    async updateData(envi, params, endpoint, data){
+        await callApi(envi, null, END_POINT + `/${endpoint}`, "PUT", data)
     }
     
 }

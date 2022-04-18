@@ -36,9 +36,9 @@ class Export extends Component {
         super(props);
         this.state = {
             bearToken: localStorage.getItem("bearToken") ? localStorage.getItem("bearToken") : null,
-            search: null,
-            type: data.type[0].val,
-            envi: 'URLDEV',
+            search: localStorage.getItem("SEARCH") ? localStorage.getItem("SEARCH") : null,
+            type: localStorage.getItem("TYPE") ? localStorage.getItem("TYPE") : null,
+            envi: localStorage.getItem("ENVI") ? localStorage.getItem("ENVI") : 'URLDEV',
             data: null,
             fileName: 'export',
             loading: false
@@ -53,16 +53,19 @@ class Export extends Component {
 
     }
     handChangeEnvi(value) {
+        localStorage.setItem("ENVI", value)
         this.setState({
             envi: value
         })
     }
     handChangeSearch(value) {
+        localStorage.setItem("SEARCH", value.target.value)
         this.setState({
             search: value.target.value
         })
     }
     handChangeType(value) {
+        localStorage.setItem("TYPE", value)
         this.setState({
             type: value
         })
@@ -118,7 +121,7 @@ class Export extends Component {
                         <Select
                             className='export-item'
                             style={{ width: 400 }}
-                            defaultValue="dev"
+                            
                             value={envi}
                             onChange={this.handChangeEnvi}
                         >
@@ -150,7 +153,7 @@ class Export extends Component {
                             onClick={this.handleExport}
                             disabled={!fileName || !search  ? true : false}
                         >
-                            Export File CSV
+                            Export File Excel
                             {loading  && <Spin indicator={antIcon} style={{float: "right"}}/>}
                         </Button>
                         
