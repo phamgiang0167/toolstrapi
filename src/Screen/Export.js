@@ -36,7 +36,7 @@ class Export extends Component {
         super(props);
         this.state = {
             bearToken: localStorage.getItem("bearToken") ? localStorage.getItem("bearToken") : null,
-            search: localStorage.getItem("SEARCH") ? localStorage.getItem("SEARCH") : null,
+            search: localStorage.getItem("SEARCH") ? localStorage.getItem("SEARCH") : '',
             type: localStorage.getItem("TYPE") ? localStorage.getItem("TYPE") : null,
             envi: localStorage.getItem("ENVI") ? localStorage.getItem("ENVI") : 'URLDEV',
             data: null,
@@ -86,7 +86,7 @@ class Export extends Component {
         this.setState({
             loading: true
         })
-        const params = ["driver", "vehicle", "vendor"].includes(type) ? {vendorCode : search} : {sellerCode: search}
+        const params = ["driver", "vehicle", "vendor"].includes(type) ? {vendorCode : search ? search : undefined} : {sellerCode: search}
         apis.exportData(envi, params, type)
             .then((data) => {
                 
@@ -151,7 +151,7 @@ class Export extends Component {
                         <Button
                             className="btn-export export-item"
                             onClick={this.handleExport}
-                            disabled={!fileName || !search  ? true : false}
+                            // disabled={!fileName || !search  ? true : false}
                         >
                             Export File Excel
                             {loading  && <Spin indicator={antIcon} style={{float: "right"}}/>}
